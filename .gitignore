@@ -1,1 +1,8 @@
+# builds
 major_project_algos
+
+# go mod vendor
+vendor/
+
+# GoLand
+.idea/
