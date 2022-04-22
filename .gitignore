@@ -1,5 +1,6 @@
 # builds
 major_project_algos
+go_build_algos
 
 # go mod vendor
 vendor/
