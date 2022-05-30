@@ -1,20 +1,18 @@
 package main
 
-import (
-	"log"
-
-	stealthaddress "github.com/nik-gautam/major_project_algos/stealth_address"
-)
+import "github.com/nik-gautam/major_project_algos/ecc_blind_sign"
 
 func main() {
 
-	txn, err := stealthaddress.InitTransaction()
-	if err != nil {
-		log.Fatal("Phat gya")
+	//txn, err := stealthaddress.InitTransaction()
+	//if err != nil {
+	//	log.Fatal("Phat gya")
+	//
+	//	return
+	//}
+	//
+	//stealthaddress.ProcessTxn(txn)
 
-		return
-	}
-
-	stealthaddress.ProcessTxn(txn)
+	ecc_blind_sign.GenerateVoter()
 
 }
