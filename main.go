@@ -14,5 +14,4 @@ func main() {
 	//stealthaddress.ProcessTxn(txn)
 
 	ecc_blind_sign.GenerateVoter()
-
 }

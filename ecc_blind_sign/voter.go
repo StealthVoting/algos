@@ -2,10 +2,12 @@ package ecc_blind_sign
 
 import (
 	"crypto/rand"
-	"github.com/nik-gautam/major_project_algos/curve"
-	"github.com/nik-gautam/major_project_algos/keys"
+	"fmt"
 	"log"
 	"math/big"
+
+	"github.com/nik-gautam/major_project_algos/curve"
+	"github.com/nik-gautam/major_project_algos/keys"
 )
 
 type voter struct {
@@ -28,12 +30,6 @@ var defaultVoterPvt voter
 var defaultVoterPub VoterPublicData
 
 func GenerateVoter() {
-	var nHex = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
-	n, success := big.NewInt(0).SetString(nHex, 16)
-	if !success {
-		panic("Panic at the Disco!")
-	}
-
 	a, err := rand.Int(rand.Reader, big.NewInt(1<<16))
 	b, err := rand.Int(rand.Reader, big.NewInt(1<<16))
 	w, err := rand.Int(rand.Reader, big.NewInt(1<<16))
@@ -54,8 +50,8 @@ func GenerateVoter() {
 	gcd := big.NewInt(0).GCD(e, d, w, z)
 
 	if gcd.Cmp(big.NewInt(1)) != 0 {
-		println("gcd", gcd)
-		panic("non 1 gcd")
+		fmt.Println("GCD", gcd)
+		log.Fatalf("non 1 GCD")
 	}
 
 	defaultVoterPvt = voter{a: a, b: b, w: w, z: z, e: e, d: d}
@@ -73,20 +69,20 @@ func GenerateVoter() {
 
 	curveObj := curve.GetCurve()
 
-	R1x, R1y := curveObj.ScalarMult(signer.R1Dash.X, signer.R1Dash.Y, BigIntMul(w, BigIntMul(a, signer.l1)).Bytes())
+	R1x, R1y := curveObj.ScalarMult(signer.R1Dash.X, signer.R1Dash.Y, BigIntMod(BigIntMul(w, BigIntMul(a, signer.l1))).Bytes())
 	R1 := keys.PublicKey{
 		X: R1x,
 		Y: R1y,
 	}
 
-	R2x, R2y := curveObj.ScalarMult(signer.R2Dash.X, signer.R2Dash.Y, BigIntMul(z, BigIntMul(b, signer.l2)).Bytes())
+	R2x, R2y := curveObj.ScalarMult(signer.R2Dash.X, signer.R2Dash.Y, BigIntMod(BigIntMul(z, BigIntMul(b, signer.l2))).Bytes())
 	R2 := keys.PublicKey{
 		X: R2x,
 		Y: R2y,
 	}
 
-	r1 := big.NewInt(0).Mod(R1.X, n)
-	r2 := big.NewInt(0).Mod(R2.X, n)
+	r1 := BigIntMod(R1.X)
+	r2 := BigIntMod(R2.X)
 
 	m := big.NewInt(16477298298399)
 
@@ -114,13 +110,16 @@ func GenerateVoter() {
 	s1 := BigIntMod(BigIntDiv(BigIntMul(s1Dash, BigIntMul(r1, BigIntMul(r2, BigIntMul(w, a)))), signer.r1Dash))
 	s2 := BigIntMod(BigIntDiv(BigIntMul(s2Dash, BigIntMul(r1, BigIntMul(r2, BigIntMul(z, b)))), signer.r2Dash))
 
-	s := big.NewInt(0).Mod(big.NewInt(0).Add(s1, s2), n)
+	s := BigIntMod(big.NewInt(0).Add(s1, s2))
+	if s.Cmp(big.NewInt(0)) == 0 {
+		log.Fatalf("s == 0")
+	}
 	Rx, Ry := curveObj.Add(R1.X, R1.Y, R2.X, R2.Y)
 	R := &keys.PublicKey{
 		X: Rx,
 		Y: Ry,
 	}
-	r := BigIntMul(r1, r2)
+	r := BigIntMod(BigIntMul(r1, r2))
 
 	// Verification
 	chalGya := VerifyBlindSign(s, R, r, m, signer)
