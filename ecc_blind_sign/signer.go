@@ -2,6 +2,7 @@ package ecc_blind_sign
 
 import (
 	"crypto/rand"
+	"fmt"
 	"github.com/nik-gautam/major_project_algos/curve"
 	"github.com/nik-gautam/major_project_algos/keys"
 	"log"
@@ -84,13 +85,13 @@ func RequestBlindSign(m1Dash *big.Int, m2Dash *big.Int, signerPub *SignerPublicD
 
 	//helper := big.NewInt(0)
 
-	s1Dash := big.NewInt(0).Sub(
+	s1Dash := BigIntMod(big.NewInt(0).Sub(
 		BigIntMul(signerPvtKey, m1Dash),
-		BigIntMul(signerPub.r1Dash, BigIntMul(k1Dash, signerPub.l1)))
+		BigIntMul(signerPub.r1Dash, BigIntMul(k1Dash, signerPub.l1))))
 
-	s2Dash := big.NewInt(0).Sub(
+	s2Dash := BigIntMod(big.NewInt(0).Sub(
 		BigIntMul(signerPvtKey, m2Dash),
-		BigIntMul(signerPub.r2Dash, BigIntMul(k2Dash, signerPub.l2)))
+		BigIntMul(signerPub.r2Dash, BigIntMul(k2Dash, signerPub.l2))))
 
 	return s1Dash, s2Dash
 }
@@ -105,7 +106,7 @@ func RequestBlindSign(m1Dash *big.Int, m2Dash *big.Int, signerPub *SignerPublicD
 
 func VerifyBlindSign(s *big.Int, R *keys.PublicKey, r *big.Int, m *big.Int, signerPub *SignerPublicData) bool {
 	// mQ = sG + rR;
-	println("s", s.String())
+	fmt.Println("s", len(s.String()))
 
 	curveObj := curve.GetCurve()
 
