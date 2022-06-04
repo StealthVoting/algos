@@ -65,23 +65,12 @@ func VerifySign(Zdash *keys.PublicKey, K *keys.PublicKey, M *keys.PublicKey, u1 
 
 	curve := curve.GetCurve()
 
-	//tempKMx, tempKMy := curve.Add(K.X, K.Y, M.X, M.Y)
-	//
-	//negTempKMy := BigIntMul(tempKMy, big.NewInt(-1))
-	//
-	//lhsX, lhsY := curve.Add(Zdash.X, Zdash.Y, tempKMx, negTempKMy)
-	//lhs := keys.PublicKey{
-	//	X: lhsX,
-	//	Y: lhsY,
-	//}
+	tempKMx, tempKMy := curve.Add(K.X, K.Y, M.X, M.Y)
 
-	tempLshX, tempLshY := curve.Add(Zdash.X, Zdash.Y, K.X, BigIntMul(K.Y, big.NewInt(-1)))
-
-	temp2LshX, temp2LshY := curve.Add(tempLshX, tempLshY, M.X, BigIntMul(M.Y, big.NewInt(-1)))
-
-	lsh := keys.PublicKey{
-		X: temp2LshX,
-		Y: temp2LshY,
+	lhsX, lhsY := curve.Add(Zdash.X, Zdash.Y, tempKMx, BigIntMul(tempKMy, big.NewInt(-1)))
+	lhs := keys.PublicKey{
+		X: lhsX,
+		Y: lhsY,
 	}
 
 	rhsX, rhsY := curve.ScalarMult(P.X, P.Y, u1.Bytes())
@@ -90,10 +79,10 @@ func VerifySign(Zdash *keys.PublicKey, K *keys.PublicKey, M *keys.PublicKey, u1 
 		Y: rhsY,
 	}
 
-	println("LHS:- ", lsh.Hex())
+	println("LHS:- ", lhs.Hex())
 	println("RHS:- ", rhs.Hex())
 
-	if lsh.Hex() == rhs.Hex() {
+	if lhs.Hex() == rhs.Hex() {
 		return true
 	} else {
 		return false
