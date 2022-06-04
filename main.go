@@ -1,6 +1,8 @@
 package main
 
-import "github.com/nik-gautam/major_project_algos/ecc_blind_sign"
+import (
+	"github.com/nik-gautam/major_project_algos/ecc_blind_sign"
+)
 
 func main() {
 
@@ -14,4 +16,6 @@ func main() {
 	//stealthaddress.ProcessTxn(txn)
 
 	ecc_blind_sign.GenerateVoter()
+
+	//ecc_blind_sign_novel.GenerateVoter()
 }

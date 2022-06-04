@@ -1,4 +1,4 @@
-package ecc_blind_sign
+package ecc_blind_sign_novel
 
 import (
 	"log"

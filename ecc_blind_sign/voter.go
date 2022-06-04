@@ -2,137 +2,117 @@ package ecc_blind_sign
 
 import (
 	"crypto/rand"
-	"fmt"
-	"log"
-	"math/big"
-
+	"crypto/sha1"
 	"github.com/nik-gautam/major_project_algos/curve"
 	"github.com/nik-gautam/major_project_algos/keys"
+	"math"
+	"math/big"
 )
 
 type voter struct {
 	a *big.Int
 	b *big.Int
 	w *big.Int
-	z *big.Int
-	e *big.Int
-	d *big.Int
 }
 
-type VoterPublicData struct {
-	R1 *keys.PublicKey
-	R2 *keys.PublicKey
-	r1 *big.Int
-	r2 *big.Int
+type VoterPub struct {
+	u1 *big.Int
+	u2 *big.Int
+	M  *keys.PublicKey
+	K  *keys.PublicKey
+	P  *keys.PublicKey // P = aY
+	Q  *keys.PublicKey // Q = bY
 }
 
-var defaultVoterPvt voter
-var defaultVoterPub VoterPublicData
+var defaultVoter voter
 
 func GenerateVoter() {
-	a, err := rand.Int(rand.Reader, big.NewInt(1<<16))
-	b, err := rand.Int(rand.Reader, big.NewInt(1<<16))
-	w, err := rand.Int(rand.Reader, big.NewInt(1<<16))
+	curve := curve.GetCurve()
 
-	// generate coPrime
-	z := big.NewInt(0)
-	for i := big.NewInt(2); i.Cmp(w) == -1; i = i.Add(i, big.NewInt(1)) {
-		if big.NewInt(1).Cmp(big.NewInt(0).GCD(nil, nil, w, i)) == 0 {
-			z = i
-			break
-		}
-	}
+	signer := GenerateSigner()
 
-	// ew + dz = gcd(w, z) = 1
-	e := big.NewInt(0)
-	d := big.NewInt(0)
+	hasher := sha1.New()
 
-	gcd := big.NewInt(0).GCD(e, d, w, z)
-
-	if gcd.Cmp(big.NewInt(1)) != 0 {
-		fmt.Println("GCD", gcd)
-		log.Fatalf("non 1 GCD")
-	}
-
-	defaultVoterPvt = voter{a: a, b: b, w: w, z: z, e: e, d: d}
-
-	//helper := big.NewInt(0)
-	//-------------------------------------------------------------------------------
-
-	//R1 = R1' * w * a * l1 --> R1 = (xr1, yr1)
-	//R2 = R2' * z * b * l2 --> R2 = (xr2, yr2)
-	//
-	//r1 = xr1 mod n
-	//r2 = xr2 mod n
-
-	signer, err := GenerateSigner()
-
-	curveObj := curve.GetCurve()
-
-	R1x, R1y := curveObj.ScalarMult(signer.R1Dash.X, signer.R1Dash.Y, BigIntMod(BigIntMul(w, BigIntMul(a, signer.l1))).Bytes())
-	R1 := keys.PublicKey{
-		X: R1x,
-		Y: R1y,
-	}
-
-	R2x, R2y := curveObj.ScalarMult(signer.R2Dash.X, signer.R2Dash.Y, BigIntMod(BigIntMul(z, BigIntMul(b, signer.l2))).Bytes())
-	R2 := keys.PublicKey{
-		X: R2x,
-		Y: R2y,
-	}
-
-	r1 := BigIntMod(R1.X)
-	r2 := BigIntMod(R2.X)
-
-	m := big.NewInt(16477298298399)
-
-	// m1' = (e * m * r1' * 1/r1 * 1/r2 * 1/a) mod n
-	//m1Dash := big.NewInt(0).Mod(
-	//	big.NewInt(0).Div(
-	//		big.NewInt(0).Mul(
-	//			big.NewInt(0).Mul(e, m), signer.r1Dash), big.NewInt(0).Mul(r1, big.NewInt(0).Mul(r2, a))), n)
-	m1Dash := BigIntMod(BigIntDiv(BigIntMul(e, BigIntMul(m, signer.r1Dash)), BigIntMul(r1, BigIntMul(r2, a))))
-
-	// m2' = (d * m * r2' * 1/r1 * 1/r2 * 1/b) mod n
-	//m2Dash := big.NewInt(0).Mod(big.NewInt(0).Div(big.NewInt(0).Mul(big.NewInt(0).Mul(d, m), signer.r2Dash), big.NewInt(0).Mul(r1, big.NewInt(0).Mul(r2, b))), n)
-	m2Dash := BigIntMod(BigIntDiv(BigIntMul(d, BigIntMul(m, signer.r2Dash)), BigIntMul(r1, BigIntMul(r2, b))))
-
-	//Signing
-	s1Dash, s2Dash := RequestBlindSign(m1Dash, m2Dash, signer)
-
-	// Extraction
-	//s1 = (s1' * 1/r1' * r1 * r2 * w * a ) mod n
-	//s2 = (s2' * 1/r2' * r1 * r2 * z * b ) mod n
-
-	//s1 := big.NewInt(0).Mod(big.NewInt(0).Div(big.NewInt(0).Mul(s1Dash, big.NewInt(0).Mul(r1, big.NewInt(0).Mul(r2, big.NewInt(0).Mul(w, a)))), signer.r1Dash), n)
-	//s2 := big.NewInt(0).Mod(big.NewInt(0).Div(big.NewInt(0).Mul(s2Dash, big.NewInt(0).Mul(r1, big.NewInt(0).Mul(r2, big.NewInt(0).Mul(z, b)))), signer.r2Dash), n)
-
-	s1 := BigIntMod(BigIntDiv(BigIntMul(s1Dash, BigIntMul(r1, BigIntMul(r2, BigIntMul(w, a)))), signer.r1Dash))
-	s2 := BigIntMod(BigIntDiv(BigIntMul(s2Dash, BigIntMul(r1, BigIntMul(r2, BigIntMul(z, b)))), signer.r2Dash))
-
-	s := BigIntMod(big.NewInt(0).Add(s1, s2))
-	if s.Cmp(big.NewInt(0)) == 0 {
-		log.Fatalf("s == 0")
-	}
-	Rx, Ry := curveObj.Add(R1.X, R1.Y, R2.X, R2.Y)
-	R := &keys.PublicKey{
-		X: Rx,
-		Y: Ry,
-	}
-	r := BigIntMod(BigIntMul(r1, r2))
-
-	// Verification
-	chalGya := VerifyBlindSign(s, R, r, m, signer)
-
-	println("chalGya", chalGya)
-
-	if chalGya {
-		println("yayayayayyayayayayayyayayayay")
-	} else {
-		println("I give up")
-	}
-
+	a, err := rand.Int(rand.Reader, big.NewInt(int64(math.MaxInt32)))
 	if err != nil {
-		log.Fatalf("[voter] generateVoter: err while big.NewInt --> %v", err)
+		panic("[Voter] Error generating a")
+	}
+
+	b, err := rand.Int(rand.Reader, big.NewInt(int64(math.MaxInt32)))
+	if err != nil {
+		panic("[Voter] Error generating b")
+	}
+
+	w, err := rand.Int(rand.Reader, big.NewInt(int64(math.MaxInt32)))
+	if err != nil {
+		panic("[Voter] Error generating w")
+	}
+
+	defaultVoter = voter{
+		a: a,
+		b: b,
+		w: w,
+	}
+
+	A := &keys.PublicKey{}
+	A.X, A.Y = curve.ScalarBaseMult(a.Bytes())
+
+	B := &keys.PublicKey{}
+	B.X, B.Y = curve.ScalarBaseMult(b.Bytes())
+
+	P := &keys.PublicKey{}
+	P.X, P.Y = curve.ScalarMult(signer.Y.X, signer.Y.Y, a.Bytes())
+
+	Q := &keys.PublicKey{}
+	Q.X, Q.Y = curve.ScalarMult(signer.Y.X, signer.Y.Y, b.Bytes())
+
+	K := &keys.PublicKey{}
+	K.X, K.Y = curve.ScalarBaseMult(w.Bytes())
+
+	// Signing Phase starts here
+	m := big.NewInt(1021)
+
+	hasher.Write(A.Bytes())
+	hasher.Write(B.Bytes())
+	hasher.Write(m.Bytes())
+
+	u1 := big.NewInt(0).SetBytes(hasher.Sum(nil))
+
+	u2 := BigIntAdd(u1, b)
+
+	HQ := &keys.PublicKey{}
+	HQ.X, HQ.Y = curve.Add(signer.H.X, signer.H.Y, Q.X, Q.Y)
+
+	M := &keys.PublicKey{}
+	M.X, M.Y = curve.ScalarMult(HQ.X, HQ.Y, a.Bytes())
+
+	voterPub := &VoterPub{
+		u1: u1,
+		u2: u2,
+		M:  M,
+		K:  K,
+		P:  P,
+		Q:  Q,
+	}
+
+	z := SignMessage(voterPub)
+	// Signing Phase ends here
+
+	// Extraction Phase starts here
+	temp1 := BigIntAdd(BigIntMul(z, a), w)
+
+	//println(temp1.String())
+
+	Zdash := &keys.PublicKey{}
+	Zdash.X, Zdash.Y = curve.ScalarBaseMult(temp1.Bytes())
+	// Extraction Phase ends here
+
+	// Verification starts here
+	isValid := VerifySign(Zdash, K, M, u1, P)
+
+	if isValid {
+		println("Valid Sign")
+	} else {
+		println("InValid Sign")
 	}
 }
