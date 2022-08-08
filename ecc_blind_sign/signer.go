@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"github.com/nik-gautam/major_project_algos/curve"
 	"github.com/nik-gautam/major_project_algos/keys"
-	"math"
 	"math/big"
 )
 
@@ -14,8 +13,8 @@ type signer struct {
 }
 
 type SignerPub struct {
-	Y *keys.PublicKey
-	H *keys.PublicKey
+	Y *keys.PublicKey // Y = xG
+	H *keys.PublicKey // H = rG
 }
 
 var defaultSigner signer
@@ -23,15 +22,23 @@ var defaultSigner signer
 func GenerateSigner() *SignerPub {
 	curve := curve.GetCurve()
 
-	x, err := rand.Int(rand.Reader, big.NewInt(int64(math.MaxInt32)))
+	byt, _ := GenerateRandomBytes(16)
+
+	x, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
 	if err != nil {
 		panic("[Signer] Error generating x")
 	}
 
-	r, err := rand.Int(rand.Reader, big.NewInt(int64(math.MaxInt32)))
+	println("x " + x.String())
+
+	byt, _ = GenerateRandomBytes(16)
+
+	r, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
 	if err != nil {
 		panic("[Signer] Error generating r")
 	}
+
+	println("r " + r.String())
 
 	defaultSigner = signer{
 		x: x,
@@ -57,7 +64,7 @@ func GenerateSigner() *SignerPub {
 }
 
 func SignMessage(voter *VoterPub) *big.Int {
-	z := BigIntAdd(BigIntMul(voter.u2, defaultSigner.x), defaultSigner.r)
+	z := BigIntAdd(BigIntMul(voter.u2, defaultSigner.x), defaultSigner.r) // z = r + u2 * x
 	return z
 }
 
@@ -81,6 +88,9 @@ func VerifySign(Zdash *keys.PublicKey, K *keys.PublicKey, M *keys.PublicKey, u1 
 
 	println("LHS:- ", lhs.Hex())
 	println("RHS:- ", rhs.Hex())
+
+	println("LHS:-  X = ", lhs.X.String(), " Y = ", lhs.Y.String())
+	println("RHS:-  X = ", rhs.X.String(), " Y = ", rhs.Y.String())
 
 	if lhs.Hex() == rhs.Hex() {
 		return true
