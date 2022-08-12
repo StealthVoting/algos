@@ -1,11 +1,11 @@
 package ecc_blind_sign
 
 import (
-	"crypto/rand"
 	"crypto/sha1"
 	"github.com/nik-gautam/major_project_algos/curve"
 	"github.com/nik-gautam/major_project_algos/keys"
 	"math/big"
+	"time"
 )
 
 type voter struct {
@@ -26,38 +26,40 @@ type VoterPub struct {
 var defaultVoter voter
 
 func GenerateVoter() {
+	start := time.Now()
+
 	curve := curve.GetCurve()
 
 	signer := GenerateSigner()
 
 	hasher := sha1.New()
 
-	byt, _ := GenerateRandomBytes(16)
-
-	a, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
+	byt, err := GenerateRandomBytes(Level)
 	if err != nil {
 		panic("[Voter] Error generating a")
 	}
 
-	println("a " + a.String())
+	a := new(big.Int).SetBytes(byt)
 
-	byt, _ = GenerateRandomBytes(16)
+	//println("a " + a.String())
 
-	b, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
+	byt, err = GenerateRandomBytes(Level)
 	if err != nil {
 		panic("[Voter] Error generating b")
 	}
 
-	println("b " + b.String())
+	b := new(big.Int).SetBytes(byt)
 
-	byt, _ = GenerateRandomBytes(16)
+	//println("b " + b.String())
 
-	w, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
+	byt, err = GenerateRandomBytes(Level)
 	if err != nil {
 		panic("[Voter] Error generating w")
 	}
 
-	println("w " + w.String())
+	w := new(big.Int).SetBytes(byt)
+
+	//println("w " + w.String())
 
 	defaultVoter = voter{
 		a: a,
@@ -68,23 +70,26 @@ func GenerateVoter() {
 	A := &keys.PublicKey{}
 	A.X, A.Y = curve.ScalarBaseMult(a.Bytes())
 
-	println("A:- " + A.Hex())
+	//println("A:- " + A.Hex())
 
 	B := &keys.PublicKey{}
 	B.X, B.Y = curve.ScalarBaseMult(b.Bytes())
-	println("B:- " + B.Hex())
+	//println("B:- " + B.Hex())
 
 	P := &keys.PublicKey{}
 	P.X, P.Y = curve.ScalarMult(signer.Y.X, signer.Y.Y, a.Bytes())
-	println("P:- " + P.Hex())
+	//println("P:- " + P.Hex())
 
 	Q := &keys.PublicKey{}
 	Q.X, Q.Y = curve.ScalarMult(signer.Y.X, signer.Y.Y, b.Bytes())
-	println("Q:- " + Q.Hex())
+	//println("Q:- " + Q.Hex())
 
 	K := &keys.PublicKey{}
 	K.X, K.Y = curve.ScalarBaseMult(w.Bytes())
-	println("K:- " + K.Hex())
+	//println("K:- " + K.Hex())
+
+	elapsed := time.Since(start)
+	println("Till Generation:- ", elapsed.Microseconds())
 
 	// Signing Phase starts here
 	m := big.NewInt(1021)
@@ -125,15 +130,21 @@ func GenerateVoter() {
 	//println(temp1.String())
 
 	Zdash := &keys.PublicKey{}
-	Zdash.X, Zdash.Y = curve.ScalarBaseMult(temp1.Bytes())
+	Zdash.X, Zdash.Y = curve.ScalarBaseMult(BigIntMod(temp1).Bytes()) // (a % n)G == aG
+
+	elapsed = time.Since(start)
+	println("Till Signing:- ", elapsed.Microseconds())
 	// Extraction Phase ends here
 
 	// Verification starts here
 	// Zdash - (M + K) = u1*P
 	isValid := VerifySign(Zdash, K, M, u1, P)
 
+	elapsed = time.Since(start)
+	println("Till Validation:- ", elapsed.Microseconds())
+
 	if isValid {
-		println("Valid Sign")
+		println("Valid Sign for ", (Level * 8), " bits")
 	} else {
 		println("InValid Sign")
 	}

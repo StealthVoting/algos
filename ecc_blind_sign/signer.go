@@ -1,7 +1,6 @@
 package ecc_blind_sign
 
 import (
-	"crypto/rand"
 	"github.com/nik-gautam/major_project_algos/curve"
 	"github.com/nik-gautam/major_project_algos/keys"
 	"math/big"
@@ -22,23 +21,23 @@ var defaultSigner signer
 func GenerateSigner() *SignerPub {
 	curve := curve.GetCurve()
 
-	byt, _ := GenerateRandomBytes(16)
-
-	x, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
+	byt, err := GenerateRandomBytes(Level)
 	if err != nil {
 		panic("[Signer] Error generating x")
 	}
 
-	println("x " + x.String())
+	x := new(big.Int).SetBytes(byt)
 
-	byt, _ = GenerateRandomBytes(16)
+	//println("x " + x.String())
 
-	r, err := rand.Int(rand.Reader, new(big.Int).SetBytes(byt))
+	byt, err = GenerateRandomBytes(Level)
 	if err != nil {
 		panic("[Signer] Error generating r")
 	}
 
-	println("r " + r.String())
+	r := new(big.Int).SetBytes(byt)
+
+	//println("r " + r.String())
 
 	defaultSigner = signer{
 		x: x,
@@ -86,11 +85,11 @@ func VerifySign(Zdash *keys.PublicKey, K *keys.PublicKey, M *keys.PublicKey, u1 
 		Y: rhsY,
 	}
 
-	println("LHS:- ", lhs.Hex())
-	println("RHS:- ", rhs.Hex())
+	//println("LHS:- ", lhs.Hex())
+	//println("RHS:- ", rhs.Hex())
 
-	println("LHS:-  X = ", lhs.X.String(), " Y = ", lhs.Y.String())
-	println("RHS:-  X = ", rhs.X.String(), " Y = ", rhs.Y.String())
+	//println("LHS:-  X = ", lhs.X.String(), " Y = ", lhs.Y.String())
+	//println("RHS:-  X = ", rhs.X.String(), " Y = ", rhs.Y.String())
 
 	if lhs.Hex() == rhs.Hex() {
 		return true

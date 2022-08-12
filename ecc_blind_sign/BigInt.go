@@ -3,26 +3,21 @@ package ecc_blind_sign
 import (
 	"crypto/rand"
 	"github.com/nik-gautam/major_project_algos/curve"
-	"log"
 	"math/big"
 )
 
+var Level = 32
+
+var P = curve.GetCurve().Params().N
+
 func BigIntMod(val *big.Int) *big.Int {
-	var nHex = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
-	n, success := big.NewInt(0).SetString(nHex, 16)
-	if !success {
-		log.Fatalf("Error creating n")
-	}
-
-	return big.NewInt(0).Mod(val, n)
+	return val.Mod(val, P)
 }
-
-var P = curve.GetCurve().Params().P
 
 func BigIntAdd(a *big.Int, b *big.Int) *big.Int {
 	res := big.NewInt(0)
 
-	return res.Add(res, a).Add(res, b).Mod(res, P)
+	return res.Add(res, a).Add(res, b)
 
 	//return big.NewInt(0).Add(a, b).Mod()
 }
@@ -30,7 +25,7 @@ func BigIntAdd(a *big.Int, b *big.Int) *big.Int {
 func BigIntMul(a *big.Int, b *big.Int) *big.Int {
 	res := big.NewInt(1)
 
-	return res.Mul(res, a).Mul(res, b).Mod(res, P)
+	return res.Mul(res, a).Mul(res, b)
 
 	//return big.NewInt(0).Mul(a, b)
 }
